@@ -1,0 +1,88 @@
+esphome:
+  name: ecored
+
+esp32:
+  board: lolin_c3_mini
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+api:
+  password: !secret api_password
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret ssid
+  password: !secret ssid_password
+
+  ap:
+    ssid: "Ecored"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+web_server:
+  port: 8080
+  auth:
+    username: !secret web_user
+    password: !secret web_password
+
+esp32_ble_tracker:
+
+ble_client:
+  - mac_address: !secret ecoflow_mac
+    id: ecoflow
+    on_connect:
+      then:
+        - lambda: |-
+            ESP_LOGD("ble_client_lambda", "Connected to BLE device");
+
+switch:
+  - platform: template
+    name: "AC ON/OFF"
+    turn_on_action:
+      - ble_client.ble_write:
+          id: ecoflow
+          service_uuid: 00000001-0000-1000-8000-00805f9b34fb
+          characteristic_uuid: 00000002-0000-1000-8000-00805f9b34fb
+          # List of bytes to write.
+          value: [0xaa, 0x02, 0x07, 0x00, 0xde, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x05, 0x20, 0x42, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x6b, 0x11]
+    turn_off_action:
+      - ble_client.ble_write:
+          id: ecoflow
+          service_uuid: 00000001-0000-1000-8000-00805f9b34fb
+          characteristic_uuid: 00000002-0000-1000-8000-00805f9b34fb
+          # List of bytes to write.
+          value: [0xaa, 0x02, 0x07, 0x00, 0xde, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0x05, 0x20, 0x42, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7b, 0xd1]
+
+sensor:
+  - platform: ble_client
+    type: characteristic
+    ble_client_id: ecoflow
+    name: "Ecoflow AC Status"
+    service_uuid: '0001'
+    characteristic_uuid: '0003'
+    notify: true
+    id: ecoflow_ac_status
+    filters:
+      - lambda: |-
+          if (x < 0.0) {
+            return {};
+          }
+          return x;
+    lambda: |-
+      if (x[12] == 4 && x[14] == 32 && x[15] == 2) {
+        return (float) x[61];
+      } else {
+        return -1.0;
+      }      
+
+  - platform: ble_client
+    type: rssi
+    ble_client_id: ecoflow
+    name: "Ecoflow RSSI"
