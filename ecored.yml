@@ -44,7 +44,14 @@ ble_client:
 
 switch:
   - platform: template
+    id: ac_onoff
     name: "AC ON/OFF"
+    lambda: |-
+      if (id(ecoflow_ac_status).state > 0) {
+        return true;
+      } else {
+        return false;
+      }
     turn_on_action:
       - ble_client.ble_write:
           id: ecoflow
@@ -69,6 +76,7 @@ sensor:
     characteristic_uuid: '0003'
     notify: true
     id: ecoflow_ac_status
+    update_interval: 500ms
     filters:
       - lambda: |-
           if (x < 0.0) {

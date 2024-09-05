@@ -24,8 +24,6 @@ It is possible to add support for other components as well such as: BMS, EMS, MP
 
 Tested on ESP32 C3 Super Mini board with EcoFlow Delta2 with extra battery.
 
-
-* The switch on Web UI turns invertor on, but fails to turn it off without any error. Need to investigate
 * ESP32C3 is really hot during operation
 
 ## References
